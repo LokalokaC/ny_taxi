@@ -1,0 +1,29 @@
+#.venv
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+#credentials and settings
+/.credentials/
+.key
+gcs.json
+
+*.logs
+*.tmp
+
+#downloads
+tmp/
+docker-compose_dev.yml
+
+#airflow
+data/
+logs/
+plugins/
+airflow.cfg
+webserver_config.py
+
+#extra scripts
+pipeline.py
+utils.py
+
