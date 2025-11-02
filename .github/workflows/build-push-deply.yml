@@ -137,6 +137,7 @@ jobs:
             sudo mkdir -p ${VM_DEPLOY_DIR} 
             sudo chown -R ${VM_USER}:${VM_USER} ${VM_DEPLOY_DIR}
           "
+          scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no .env ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/.env
 
       - name: Run deploy.sh on VM
         run: |
