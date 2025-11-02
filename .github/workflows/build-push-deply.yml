@@ -71,9 +71,9 @@ jobs:
 
     env:
       VM_HOST: ${{ vars.VM_HOST }}
-      VM_USER: ubuntu
+      VM_USER: ${{ secrets.VM_USER }}
       VM_DEPLOY_DIR: ${{ vars.VM_DEPLOY_DIR }}
-      REGION: us
+      REGION: ${{ secrets.GAR_LOCATION }}
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       IMAGE_URI: ${{ needs.build-push.outputs.image_uri }}
 
