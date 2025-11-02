@@ -1,0 +1,129 @@
+name: Build, Push to GAR, and Deploy to VM
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+env:
+  REGION: ${{ secrets.REGION }}
+  GAR_REPO: ${{ secrets.GAR_REPO }}
+  IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_ACCOUNT_EMAIL: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+  WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+
+jobs:
+  build-push:
+    name: Build & Push to GAR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image_uri: ${{ steps.meta.outputs.image_uri }}
+      latest_uri: ${{ steps.meta.outputs.latest_uri }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: auth
+        name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT_EMAIL }}
+          token_format: access_token
+          create_credentials_file: true
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Docker auth to GAR
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - id: meta
+        name: Prepare image URIs
+        run: |
+          IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${GITHUB_SHA}"
+          LATEST_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:latest"
+          echo "image_uri=${IMAGE_URI}"  >> $GITHUB_OUTPUT
+          echo "latest_uri=${LATEST_URI}" >> $GITHUB_OUTPUT
+          echo "Building ${IMAGE_URI} and tagging ${LATEST_URI}"
+
+      - name: Build & Push
+        run: |
+          docker build -t "${{ steps.meta.outputs.image_uri }}" .
+          docker push "${{ steps.meta.outputs.image_uri }}"
+          docker tag "${{ steps.meta.outputs.image_uri }}" "${{ steps.meta.outputs.latest_uri }}"
+          docker push "${{ steps.meta.outputs.latest_uri }}"
+
+  deploy:
+    name: SSH deploy to VM
+    needs: build-push
+    runs-on: ubuntu-latest
+
+    env:
+      VM_HOST: ${{ vars.VM_HOST }}
+      VM_USER: ${{ secrets.VM_USER }}
+      VM_DEPLOY_DIR: ${{ vars.VM_DEPLOY_DIR }}
+      REGION: ${{ secrets.GCP_REGION }}
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      IMAGE_URI: ${{ needs.build-push.outputs.image_uri }}
+
+    steps:
+      - name: Install ssh client
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
+
+      - name: Add VM to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -T 10 "${VM_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+     
+            - name: Write .env to VM
+        env:
+          ENV_POSTGRES_USER:     ${{ secrets.POSTGRES_USER }}
+          ENV_POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          ENV_POSTGRES_DB:       ${{ secrets.POSTGRES_DB }}
+          ENV_AIRFLOW_USER:      ${{ secrets.AIRFLOW_USER }}
+          ENV_AIRFLOW_PASSWORD:  ${{ secrets.AIRFLOW_PASSWORD }}
+          ENV_GCP_PROJECT_ID:    ${{ secrets.GCP_PROJECT_ID }}
+          ENV_GCS_BUCKET:        ${{ secrets.GCS_BUCKET }}
+          ENV_BQ_DATASET:        ${{ secrets.BQ_DATASET }}
+          ENV_BQ_TABLE:          ${{ secrets.BQ_TABLE }}
+          ENV_AIRFLOW_IMAGE:     ${{ needs.build-push.outputs.image_uri }}
+        run: |
+          ssh -i ~/.ssh/id_deploy ${VM_USER}@${VM_HOST} "mkdir -p ${VM_DEPLOY_DIR}"
+          ssh -i ~/.ssh/id_deploy ${VM_USER}@${VM_HOST} "cat > ${VM_DEPLOY_DIR}/.env" <<'EOF'
+POSTGRES_USER=${ENV_POSTGRES_USER}
+POSTGRES_PASSWORD=${ENV_POSTGRES_PASSWORD}
+POSTGRES_DB=${ENV_POSTGRES_DB}
+AIRFLOW_USER=${ENV_AIRFLOW_USER}
+AIRFLOW_PASSWORD=${ENV_AIRFLOW_PASSWORD}
+GCP_PROJECT_ID=${ENV_GCP_PROJECT_ID}
+GCS_BUCKET=${ENV_GCS_BUCKET}
+BQ_DATASET=${ENV_BQ_DATASET}
+BQ_TABLE=${ENV_BQ_TABLE}
+AIRFLOW_IMAGE=${ENV_AIRFLOW_IMAGE}
+EOF
+
+      - name: Run deploy.sh on VM
+        run: |
+          ssh -i ~/.ssh/id_deploy ${VM_USER}@${VM_HOST} "
+            set -euo pipefail
+            cd ${VM_DEPLOY_DIR}
+            chmod +x ./deploy.sh || true
+            ./deploy.sh
+          "
