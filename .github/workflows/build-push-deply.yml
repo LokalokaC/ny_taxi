@@ -133,8 +133,10 @@ jobs:
 
       - name: Upload .env to VM
         run: |
-          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "mkdir -p ${VM_DEPLOY_DIR}"
-          scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no .env ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/.env
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "
+            sudo mkdir -p ${VM_DEPLOY_DIR} 
+            sudo chown -R ${VM_USER}:${VM_USER} ${VM_DEPLOY_DIR}
+          "
 
       - name: Run deploy.sh on VM
         run: |
