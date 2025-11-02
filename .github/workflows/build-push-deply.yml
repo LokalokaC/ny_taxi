@@ -86,10 +86,13 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -T 30 -H "${VM_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || echo "ssh-keyscan failed, continue"
 
-      - name: Write SSH key (id_deploy)
+      - name: Write SSH Private Key to File
+        id: write_key
         run: |
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_deploy
+          echo -e "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
 
       - name: Test SSH connectivity
         run: |
