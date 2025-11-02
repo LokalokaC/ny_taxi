@@ -16,9 +16,23 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          token_format: access_token
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          token_format: access_token
+          create_credentials_file: true
 
-      - name: Verify auth
-        run: gcloud auth list
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+    
+      - name: Print short access token (sanitized)
+        run: |
+          gcloud auth print-access-token | head -c 20 && echo '...'
+    
+      - name: List GAR repos (needs Artifact Registry Viewer perms)
+        run: gcloud artifacts repositories list --location=${{ secrets.GAR_LOCATION }}
+    
+      - name: Configure docker for GAR
+        run: gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
