@@ -95,7 +95,6 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes ${VM_USER}@${VM_HOST} "whoami && hostname && echo OK"
 
-      # 在 runner 產生 .env（可展開變數），然後用 scp 上傳到 VM
       - name: Generate .env locally
         env:
           ENV_POSTGRES_USER:     ${{ secrets.POSTGRES_USER }}
@@ -109,7 +108,6 @@ jobs:
           ENV_BQ_TABLE:          ${{ secrets.BQ_TABLE }}
           ENV_AIRFLOW_IMAGE:     ${{ needs.build-push.outputs.image_uri }}
         run: |
-                  run: |
           {
             echo "POSTGRES_USER=${ENV_POSTGRES_USER}"
             echo "POSTGRES_PASSWORD=${ENV_POSTGRES_PASSWORD}"
