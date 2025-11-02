@@ -3,8 +3,17 @@ set -euo pipefail
 
 cd /opt/airflow
 
+if [ ! -f "initialization_done" ]; then
+    echo "Running Airflow initialization..."
+    docker compose -f docker-compose.prod.yml --env-file .env run --rm --no-deps init
+    touch initialization_done
+fi
+
+echo "Pulling latest image..."
 docker compose -f docker-compose.prod.yml --env-file .env pull
+
+echo "Starting services..."
 docker compose -f docker-compose.prod.yml --env-file .env up -d --remove-orphans
 
-# 可選：清掉舊 image
+echo "Pruning old images..."
 docker image prune -f
