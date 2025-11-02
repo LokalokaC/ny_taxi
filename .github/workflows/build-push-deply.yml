@@ -131,19 +131,16 @@ jobs:
           echo "Generated local .env:"
           sed 's/^\(POSTGRES_PASSWORD=\).*/\1****/; s/^\(AIRFLOW_PASSWORD=\).*/\1****/' .env
 
-      - name: Upload .env to VM
+      - name: Upload files to VM
         run: |
-          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "
-            sudo mkdir -p ${VM_DEPLOY_DIR} 
-            sudo chown -R ${VM_USER}:${VM_USER} ${VM_DEPLOY_DIR}
-          "
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "mkdir -p ${VM_DEPLOY_DIR}"
           scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no .env ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/.env
+          scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ./deploy.sh ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/deploy.sh
 
       - name: Run deploy.sh on VM
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "
             set -euo pipefail
-            cd ${VM_DEPLOY_DIR}
-            chmod +x ./deploy.sh || true
-            ./deploy.sh
+            chmod +x ${VM_DEPLOY_DIR}/deploy.sh
+            ${VM_DEPLOY_DIR}/deploy.sh
           "
