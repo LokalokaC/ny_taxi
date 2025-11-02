@@ -73,6 +73,7 @@ jobs:
       VM_HOST: ${{ vars.VM_HOST }}
       VM_USER: ${{ secrets.VM_USER }}
       VM_DEPLOY_DIR: ${{ vars.VM_DEPLOY_DIR }}
+      VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
       REGION: ${{ secrets.GAR_LOCATION }}
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       IMAGE_URI: ${{ needs.build-push.outputs.image_uri }}
@@ -86,13 +87,12 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -T 30 -H "${VM_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || echo "ssh-keyscan failed, continue"
 
-      - name: Write SSH Private Key to File
+      - name: Write and Decode SSH Private Key
         id: write_key
         run: |
-          echo -e "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-        env:
-          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          ENCODED_KEY="${{ env.VM_SSH_KEY }}"
+          echo "$ENCODED_KEY" | base64 -d > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy          
 
       - name: Test SSH connectivity
         run: |
