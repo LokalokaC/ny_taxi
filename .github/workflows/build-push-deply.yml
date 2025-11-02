@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
 
 env:
-  REGION: us
+  REGION: ${{ secrets.GAR_LOCATION }}
   GAR_REPO: ${{ secrets.GAR_REPO }}
   IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
