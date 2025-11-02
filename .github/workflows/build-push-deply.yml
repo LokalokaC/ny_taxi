@@ -109,18 +109,19 @@ jobs:
           ENV_BQ_TABLE:          ${{ secrets.BQ_TABLE }}
           ENV_AIRFLOW_IMAGE:     ${{ needs.build-push.outputs.image_uri }}
         run: |
-          cat > .env <<EOF
-POSTGRES_USER=${ENV_POSTGRES_USER}
-POSTGRES_PASSWORD=${ENV_POSTGRES_PASSWORD}
-POSTGRES_DB=${ENV_POSTGRES_DB}
-AIRFLOW_USER=${ENV_AIRFLOW_USER}
-AIRFLOW_PASSWORD=${ENV_AIRFLOW_PASSWORD}
-GCP_PROJECT_ID=${ENV_GCP_PROJECT_ID}
-GCS_BUCKET=${ENV_GCS_BUCKET}
-BQ_DATASET=${ENV_BQ_DATASET}
-BQ_TABLE=${ENV_BQ_TABLE}
-AIRFLOW_IMAGE=${ENV_AIRFLOW_IMAGE}
-EOF
+                  run: |
+          {
+            echo "POSTGRES_USER=${ENV_POSTGRES_USER}"
+            echo "POSTGRES_PASSWORD=${ENV_POSTGRES_PASSWORD}"
+            echo "POSTGRES_DB=${ENV_POSTGRES_DB}"
+            echo "AIRFLOW_USER=${ENV_AIRFLOW_USER}"
+            echo "AIRFLOW_PASSWORD=${ENV_AIRFLOW_PASSWORD}"
+            echo "GCP_PROJECT_ID=${ENV_GCP_PROJECT_ID}"
+            echo "GCS_BUCKET=${ENV_GCS_BUCKET}"
+            echo "BQ_DATASET=${ENV_BQ_DATASET}"
+            echo "BQ_TABLE=${ENV_BQ_TABLE}"
+            echo "AIRFLOW_IMAGE=${ENV_AIRFLOW_IMAGE}"
+          } > .env
           echo "Generated local .env:"
           sed 's/^\(POSTGRES_PASSWORD=\).*/\1****/; s/^\(AIRFLOW_PASSWORD=\).*/\1****/' .env
 
