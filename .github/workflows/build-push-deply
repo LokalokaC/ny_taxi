@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
 
 env:
-  REGION: ${{ secrets.REGION }}
+  REGION: us
   GAR_REPO: ${{ secrets.GAR_REPO }}
   IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -71,14 +71,14 @@ jobs:
 
     env:
       VM_HOST: ${{ vars.VM_HOST }}
-      VM_USER: ${{ secrets.VM_USER }}
+      VM_USER: ubuntu
       VM_DEPLOY_DIR: ${{ vars.VM_DEPLOY_DIR }}
-      REGION: ${{ secrets.GCP_REGION }}
+      REGION: us
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       IMAGE_URI: ${{ needs.build-push.outputs.image_uri }}
 
     steps:
-      - name: Install ssh client
+      - name: Install ssh & scp
         run: sudo apt-get update && sudo apt-get install -y openssh-client
 
       - name: Add VM to known_hosts
@@ -86,13 +86,17 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -T 10 "${VM_HOST}" >> ~/.ssh/known_hosts
 
-      - name: Write SSH key
+      - name: Write SSH key (id_deploy)
         run: |
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
 
-     
-            - name: Write .env to VM
+      - name: Test SSH connectivity
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes ${VM_USER}@${VM_HOST} "whoami && hostname && echo OK"
+
+      # 在 runner 產生 .env（可展開變數），然後用 scp 上傳到 VM
+      - name: Generate .env locally
         env:
           ENV_POSTGRES_USER:     ${{ secrets.POSTGRES_USER }}
           ENV_POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -100,13 +104,12 @@ jobs:
           ENV_AIRFLOW_USER:      ${{ secrets.AIRFLOW_USER }}
           ENV_AIRFLOW_PASSWORD:  ${{ secrets.AIRFLOW_PASSWORD }}
           ENV_GCP_PROJECT_ID:    ${{ secrets.GCP_PROJECT_ID }}
-          ENV_GCS_BUCKET:        ${{ secrets.GCS_BUCKET }}
-          ENV_BQ_DATASET:        ${{ secrets.BQ_DATASET }}
-          ENV_BQ_TABLE:          ${{ secrets.BQ_TABLE }}
+          ENV_GCS_BUCKET:        ${{ secrets.GCS_BUCKET }}   # 或改用 vars
+          ENV_BQ_DATASET:        ${{ secrets.BQ_DATASET }}   # 或改用 vars
+          ENV_BQ_TABLE:          ${{ secrets.BQ_TABLE }}     # 或改用 vars
           ENV_AIRFLOW_IMAGE:     ${{ needs.build-push.outputs.image_uri }}
         run: |
-          ssh -i ~/.ssh/id_deploy ${VM_USER}@${VM_HOST} "mkdir -p ${VM_DEPLOY_DIR}"
-          ssh -i ~/.ssh/id_deploy ${VM_USER}@${VM_HOST} "cat > ${VM_DEPLOY_DIR}/.env" <<'EOF'
+          cat > .env <<EOF
 POSTGRES_USER=${ENV_POSTGRES_USER}
 POSTGRES_PASSWORD=${ENV_POSTGRES_PASSWORD}
 POSTGRES_DB=${ENV_POSTGRES_DB}
@@ -118,6 +121,13 @@ BQ_DATASET=${ENV_BQ_DATASET}
 BQ_TABLE=${ENV_BQ_TABLE}
 AIRFLOW_IMAGE=${ENV_AIRFLOW_IMAGE}
 EOF
+          echo "Generated local .env:"
+          sed 's/^\(POSTGRES_PASSWORD=\).*/\1****/; s/^\(AIRFLOW_PASSWORD=\).*/\1****/' .env
+
+      - name: Upload .env to VM
+        run: |
+          ssh -i ~/.ssh/id_deploy ${VM_USER}@${VM_HOST} "mkdir -p ${VM_DEPLOY_DIR}"
+          scp -i ~/.ssh/id_deploy .env ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/.env
 
       - name: Run deploy.sh on VM
         run: |
