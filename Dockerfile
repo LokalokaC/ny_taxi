@@ -22,4 +22,4 @@ COPY dags/ ./dags
 COPY src/ ./src
 COPY plugins/ ./plugins
 COPY app.ini ./app.ini
-COPY .env.example ./.env.example
+COPY .env ./.env
