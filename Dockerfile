@@ -18,8 +18,4 @@ ARG PYTHON_VERSION=3.11
 ARG CONSTRAINTS_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
 RUN pip install --no-cache-dir -r requirements.txt --constraint "${CONSTRAINTS_URL}"
 
-COPY dags/ ./dags
-COPY src/ ./src
-COPY plugins/ ./plugins
-COPY app.ini ./app.ini
-COPY .env ./.env
+COPY . .
