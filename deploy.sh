@@ -8,7 +8,7 @@ gcloud auth configure-docker "us-west1-docker.pkg.dev" --quiet
 
 if [ ! -f "initialization_done" ]; then
     echo "Running Airflow initialization..."
-    docker compose -f docker-compose.yml --env-file .env run --rm --no-deps init
+    docker compose -f docker-compose.yml --env-file .env run --rm --no-deps airflow-init
     touch initialization_done
 fi
 
