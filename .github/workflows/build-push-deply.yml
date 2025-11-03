@@ -79,6 +79,9 @@ jobs:
       IMAGE_URI: ${{ needs.build-push.outputs.image_uri }}
 
     steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+        
       - name: Install ssh & scp
         run: sudo apt-get update && sudo apt-get install -y openssh-client
 
@@ -136,6 +139,7 @@ jobs:
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "mkdir -p ${VM_DEPLOY_DIR}"
           scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no .env ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/.env
           scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ./deploy.sh ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/deploy.sh
+          scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ./docker-compose.yml ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/docker-compose.yml
 
       - name: Run deploy.sh on VM
         run: |
