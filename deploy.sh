@@ -16,7 +16,7 @@ echo "Pulling latest image..."
 docker compose -f docker-compose.prod.yml --env-file .env pull
 
 echo "Starting services..."
-docker compose -f docker-compose.prod.yml --env-file .env up -d --remove-orphans
+docker compose -f docker-compose.yml --env-file .env up -d --remove-orphans
 
 echo "Pruning old images..."
 docker image prune -f
