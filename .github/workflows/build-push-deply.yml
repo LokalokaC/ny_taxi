@@ -112,9 +112,9 @@ jobs:
           ENV_GCS_BUCKET:        ${{ secrets.GCS_BUCKET }}
           ENV_BQ_DATASET:        ${{ secrets.BQ_DATASET }}
           ENV_BQ_TABLE:          ${{ secrets.BQ_TABLE }}
-          ENV_REGION:            ${{ secrets.REGION }}        # 例：us-west1
-          ENV_GAR_REPO:          ${{ secrets.GAR_REPO }}      # 例：ny-taxi-repo
-          ENV_IMAGE_NAME:        ${{ secrets.IMAGE_NAME }}    # 例：airflow
+          ENV_REGION:            ${{ secrets.GAR_LOCATION }}
+          ENV_GAR_REPO:          ${{ secrets.GAR_REPO }}
+          ENV_IMAGE_NAME:        ${{ secrets.IMAGE_NAME }}
         run: |
           AIRFLOW_IMAGE="${ENV_REGION}-docker.pkg.dev/${ENV_GCP_PROJECT_ID}/${ENV_GAR_REPO}/${ENV_IMAGE_NAME}:latest"
 
