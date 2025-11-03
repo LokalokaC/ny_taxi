@@ -80,7 +80,7 @@ jobs:
 
     steps:
       - name: Checkout repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4
         
       - name: Install ssh & scp
         run: sudo apt-get update && sudo apt-get install -y openssh-client
