@@ -4,8 +4,7 @@ set -euo pipefail
 cd /opt/airflow
 
 echo "Configuring Docker authentication with GCP Service Account..."
-source .env
-gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+gcloud auth configure-docker "us-west1-docker.pkg.dev" --quiet
 
 if [ ! -f "initialization_done" ]; then
     echo "Running Airflow initialization..."
