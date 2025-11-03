@@ -1,6 +1,9 @@
 x-airflow-common:
   &airflow-common
   image: ${AIRFLOW_IMAGE}
+  pull_policy: always
+  credential_spec:
+    credHelpers: "us-west1-docker.pkg.dev": gcloud
   environment:
     &airflow-common-env
     PYTHONPATH: /opt/airflow
