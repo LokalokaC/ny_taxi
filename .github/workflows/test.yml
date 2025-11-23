@@ -1,38 +1,40 @@
-name: test-gcp-login
+name: test-ssh-login
+
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
-  test-login:
+  test-ssh:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
 
     steps:
-      - name: Checkout
+      - name: Checkout (optional)
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          token_format: access_token
-          create_credentials_file: true
+      - name: Install ssh client
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
 
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-    
-      - name: Print short access token (sanitized)
+      - name: Write SSH private key to file
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
         run: |
-          gcloud auth print-access-token | head -c 20 && echo '...'
-    
-      - name: List GAR repos (needs Artifact Registry Viewer perms)
-        run: gcloud artifacts repositories list --location=${{ secrets.GAR_LOCATION }}
-    
-      - name: Configure docker for GAR
-        run: gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          echo "=== Debug: key header & file type ==="
+          head -1 ~/.ssh/id_deploy || true
+          file ~/.ssh/id_deploy || true
+
+      - name: Test SSH connectivity to VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          echo "Testing SSH to ${VM_USER}@${VM_HOST} ..."
+          ssh -vvv \
+            -i ~/.ssh/id_deploy \
+            -o StrictHostKeyChecking=no \
+            -o BatchMode=yes \
+            "${VM_USER}@${VM_HOST}" \
+            "whoami && hostname && echo OK"
