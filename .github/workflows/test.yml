@@ -28,7 +28,7 @@ jobs:
 
       - name: Test SSH connectivity to VM
         env:
-          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_HOST: ${{ vars.VM_HOST }}
           VM_USER: ${{ secrets.VM_USER }}
         run: |
           echo "Testing SSH to ${VM_USER}@${VM_HOST} ..."
