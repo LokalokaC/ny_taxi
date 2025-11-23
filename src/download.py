@@ -20,16 +20,16 @@ class Asset:
     project_id: str
     bucket: str
     dataset_name: str
+    stg_table_name: str
     table_name: str
     file_name: str
     source_url: str
     gcs_uri: str
     
 
-def build_asset(taxi_type: str, year: int, month: int, project_id: str, bucket:str, dataset_name: str, table_name: str) -> Asset:
+def build_asset(taxi_type: str, year: int, month: int, project_id: str, bucket:str, dataset_name: str) -> Asset:
     file_name = f"{taxi_type}_tripdata_{year}-{month:02d}.parquet"
     source_base = "https://d37ci6vzurychx.cloudfront.net/trip-data"
-    table_name = f"{taxi_type}_{table_name}"
     return Asset(
         taxi_type = taxi_type,
         year = year,
@@ -37,7 +37,8 @@ def build_asset(taxi_type: str, year: int, month: int, project_id: str, bucket:s
         project_id = project_id,
         bucket = bucket,
         dataset_name = dataset_name,
-        table_name = table_name,
+        stg_table_name = f"{taxi_type}_taxi_staging",
+        table_name = f"{taxi_type}_taxi",
         file_name = file_name,
         source_url=f"{source_base}/{file_name}",
         gcs_uri=f"gs://{bucket}/{dataset_name}/{file_name}"

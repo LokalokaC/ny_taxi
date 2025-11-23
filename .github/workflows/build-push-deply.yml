@@ -1,8 +1,8 @@
 name: Build, Push to GAR, and Deploy to VM
 
 on:
-  push:
-    branches: [ main ]
+  ##push:
+    ##branches: [ main ]
   workflow_dispatch: {}
 
 env:
@@ -20,10 +20,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-
-    outputs:
-      image_uri: ${{ steps.meta.outputs.image_uri }}
-      latest_uri: ${{ steps.meta.outputs.latest_uri }}
 
     steps:
       - name: Checkout
@@ -76,9 +72,11 @@ jobs:
       VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
       REGION: ${{ secrets.GAR_LOCATION }}
       PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      IMAGE_URI: ${{ needs.build-push.outputs.image_uri }}
 
     steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+        
       - name: Install ssh & scp
         run: sudo apt-get update && sudo apt-get install -y openssh-client
 
@@ -87,12 +85,12 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -T 30 -H "${VM_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || echo "ssh-keyscan failed, continue"
 
-      - name: Write and Decode SSH Private Key
+      - name: Write SSH Private Key
         id: write_key
         run: |
-          ENCODED_KEY="${{ env.VM_SSH_KEY }}"
-          echo "$ENCODED_KEY" | base64 -d > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy          
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ env.VM_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy         
 
       - name: Test SSH connectivity
         run: |
@@ -105,13 +103,14 @@ jobs:
           ENV_POSTGRES_DB:       ${{ secrets.POSTGRES_DB }}
           ENV_AIRFLOW_USER:      ${{ secrets.AIRFLOW_USER }}
           ENV_AIRFLOW_PASSWORD:  ${{ secrets.AIRFLOW_PASSWORD }}
+          ENV_AIRFLOW_FERNET_KEY: ${{ secrets.FERNET_KEY}}
           ENV_GCP_PROJECT_ID:    ${{ secrets.GCP_PROJECT_ID }}
           ENV_GCS_BUCKET:        ${{ secrets.GCS_BUCKET }}
           ENV_BQ_DATASET:        ${{ secrets.BQ_DATASET }}
           ENV_BQ_TABLE:          ${{ secrets.BQ_TABLE }}
-          ENV_REGION:            ${{ secrets.REGION }}        # 例：us-west1
-          ENV_GAR_REPO:          ${{ secrets.GAR_REPO }}      # 例：ny-taxi-repo
-          ENV_IMAGE_NAME:        ${{ secrets.IMAGE_NAME }}    # 例：airflow
+          ENV_REGION:            ${{ secrets.GAR_LOCATION }}
+          ENV_GAR_REPO:          ${{ secrets.GAR_REPO }}
+          ENV_IMAGE_NAME:        ${{ secrets.IMAGE_NAME }}
         run: |
           AIRFLOW_IMAGE="${ENV_REGION}-docker.pkg.dev/${ENV_GCP_PROJECT_ID}/${ENV_GAR_REPO}/${ENV_IMAGE_NAME}:latest"
 
@@ -121,6 +120,7 @@ jobs:
             echo "POSTGRES_DB=${ENV_POSTGRES_DB}"
             echo "AIRFLOW_USER=${ENV_AIRFLOW_USER}"
             echo "AIRFLOW_PASSWORD=${ENV_AIRFLOW_PASSWORD}"
+            echo "FERNET_KEY=${ENV_AIRFLOW_FERNET_KEY}"
             echo "GCP_PROJECT_ID=${ENV_GCP_PROJECT_ID}"
             echo "GCS_BUCKET=${ENV_GCS_BUCKET}"
             echo "BQ_DATASET=${ENV_BQ_DATASET}"
@@ -129,13 +129,14 @@ jobs:
           } > .env
 
           echo "Generated local .env:"
-          sed 's/^\(POSTGRES_PASSWORD=\).*/\1****/; s/^\(AIRFLOW_PASSWORD=\).*/\1****/' .env
+          sed 's/^\(POSTGRES_PASSWORD=\).*/\1****/; s/^\(AIRFLOW_PASSWORD=\).*/\1****/; s/^\(FERNET_KEY=\).*/\1****/' .env
 
       - name: Upload files to VM
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "mkdir -p ${VM_DEPLOY_DIR}"
           scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no .env ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/.env
           scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ./deploy.sh ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/deploy.sh
+          scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ./docker-compose.yml ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/docker-compose.yml
 
       - name: Run deploy.sh on VM
         run: |

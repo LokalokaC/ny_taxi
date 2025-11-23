@@ -1,41 +1,3 @@
-x-airflow-common:
-  &airflow-common
-  image: ${AIRFLOW_IMAGE}
-  environment:
-    &airflow-common-env
-    PYTHONPATH: /opt/airflow
-
-    _AIRFLOW_WWW_USER_CREATE: "true"
-    _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USER}
-    _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD}
-
-    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
-    AIRFLOW__CORE__FERNET_KEY: ''
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
-
-    AIRFLOW__SECRETS__BACKEND: airflow.providers.google.cloud.secrets.secret_manager.CloudSecretManagerBackend
-    AIRFLOW__SECRETS__BACKEND_KWARGS: '{"connections_prefix":"airflow-connections","variables_prefix":"airflow-variables","project_id":"${GCP_PROJECT_ID}"}'
-
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
-    
-    AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
-    AIRFLOW__CELERY__WORKER_CONCURRENCY: "4"
-    AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "30"
-    
-    GCS_PROJECT_ID: ${GCS_PROJECT_ID}
-    GCS_BUCKET: ${GCS_BUCKET}
-
-  
-  depends_on:
-      &airflow-common-depends-on
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-
-
 services:
   postgres:
     image: postgres:15
@@ -55,7 +17,6 @@ services:
       retries: 20
     restart: always
 
-
   redis:
     image: redis:latest
     command: ["redis-server", "--save", "", "--appendonly", "no"]
@@ -68,26 +29,56 @@ services:
       retries: 20
     restart: always
 
-
   airflow-init:
-      <<: *airflow-common
-      profiles: ["init"]
-      restart: "no"
-      entrypoint: /bin/bash
-      command: >
-        -lc "
-        airflow db migrate &&
-        airflow users create
-          --username $${_AIRFLOW_WWW_USER_USERNAME}
-          --password $${_AIRFLOW_WWW_USER_PASSWORD}
-          --firstname Admin --lastname User
-          --role Admin --email admin@example.com || true
-        "
-      depends_on:
-        <<: *airflow-common-depends-on
+    image: ${AIRFLOW_IMAGE}
+    pull_policy: always
+    environment:
+      PYTHONPATH: /opt/airflow
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USER}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD}
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      AIRFLOW__SECRETS__BACKEND: airflow.providers.google.cloud.secrets.secret_manager.CloudSecretManagerBackend
+      AIRFLOW__SECRETS__BACKEND_KWARGS: '{"connections_prefix":"airflow-connections","variables_prefix":"airflow-variables","project_id":"${GCP_PROJECT_ID}"}'
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      GCS_BUCKET: ${GCS_BUCKET}
+    profiles: ["init"]
+    restart: "no"
+    entrypoint: /bin/bash
+    command: >
+      -c "
+      airflow db migrate &&
+      airflow users create --username $${_AIRFLOW_WWW_USER_USERNAME} --password $${_AIRFLOW_WWW_USER_PASSWORD} --firstname Admin --lastname User --role Admin --email admin@example.com || true
+      "
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   airflow-scheduler:
-    <<: *airflow-common
+    image: ${AIRFLOW_IMAGE}
+    pull_policy: always
+    environment:
+      PYTHONPATH: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      AIRFLOW__SECRETS__BACKEND: airflow.providers.google.cloud.secrets.secret_manager.CloudSecretManagerBackend
+      AIRFLOW__SECRETS__BACKEND_KWARGS: '{"connections_prefix":"airflow-connections","variables_prefix":"airflow-variables","project_id":"${GCP_PROJECT_ID}"}'
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "30"
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      GCS_BUCKET: ${GCS_BUCKET}
     command: ["airflow", "scheduler"]
     restart: always
     healthcheck:
@@ -95,13 +86,27 @@ services:
       timeout: 10s
       retries: 5
     depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
-  
   airflow-triggerer:
-    <<: *airflow-common
+    image: ${AIRFLOW_IMAGE}
+    pull_policy: always
+    environment:
+      PYTHONPATH: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      AIRFLOW__SECRETS__BACKEND: airflow.providers.google.cloud.secrets.secret_manager.CloudSecretManagerBackend
+      AIRFLOW__SECRETS__BACKEND_KWARGS: '{"connections_prefix":"airflow-connections","variables_prefix":"airflow-variables","project_id":"${GCP_PROJECT_ID}"}'
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      GCS_BUCKET: ${GCS_BUCKET}
     command: ["airflow", "triggerer"]
     healthcheck:
       interval: 10s
@@ -109,13 +114,27 @@ services:
       retries: 5
     restart: always
     depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
-    
   airflow-webserver:
-    <<: *airflow-common
+    image: ${AIRFLOW_IMAGE}
+    pull_policy: always
+    environment:
+      PYTHONPATH: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      AIRFLOW__SECRETS__BACKEND: airflow.providers.google.cloud.secrets.secret_manager.CloudSecretManagerBackend
+      AIRFLOW__SECRETS__BACKEND_KWARGS: '{"connections_prefix":"airflow-connections","variables_prefix":"airflow-variables","project_id":"${GCP_PROJECT_ID}"}'
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      GCS_BUCKET: ${GCS_BUCKET}
     command: ["airflow", "webserver"]
     ports:
       - "8080:8080"
@@ -126,13 +145,28 @@ services:
       retries: 5
     restart: always
     depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
-    
   airflow-worker:
-    <<: *airflow-common
+    image: ${AIRFLOW_IMAGE}
+    pull_policy: always
+    environment:
+      PYTHONPATH: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      AIRFLOW__SECRETS__BACKEND: airflow.providers.google.cloud.secrets.secret_manager.CloudSecretManagerBackend
+      AIRFLOW__SECRETS__BACKEND_KWARGS: '{"connections_prefix":"airflow-connections","variables_prefix":"airflow-variables","project_id":"${GCP_PROJECT_ID}"}'
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CELERY__WORKER_CONCURRENCY: "4"
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      GCS_BUCKET: ${GCS_BUCKET}
     command: ["airflow", "celery", "worker"]
     healthcheck:
       interval: 10s
@@ -140,22 +174,36 @@ services:
       retries: 5
     restart: always
     depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
-  
   flower:
-    <<: *airflow-common
+    image: ${AIRFLOW_IMAGE}
+    pull_policy: always
+    environment:
+      PYTHONPATH: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      AIRFLOW__SECRETS__BACKEND: airflow.providers.google.cloud.secrets.secret_manager.CloudSecretManagerBackend
+      AIRFLOW__SECRETS__BACKEND_KWARGS: '{"connections_prefix":"airflow-connections","variables_prefix":"airflow-variables","project_id":"${GCP_PROJECT_ID}"}'
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      GCS_BUCKET: ${GCS_BUCKET}
     command: ["airflow", "celery", "flower"]
     ports:
       - "5555:5555"
     restart: always
     depends_on:
-      <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
-
-volumes:
-  postgres-db-volume:
+##volumes:
+##  postgres-db-volume:
