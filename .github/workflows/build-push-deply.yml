@@ -90,7 +90,9 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "${{ env.VM_SSH_KEY }}" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy         
+          chmod 600 ~/.ssh/id_deploy
+          echo "SSH key header:"
+          head -2 ~/.ssh/id_deploy || true       
 
       - name: Test SSH connectivity
         run: |
