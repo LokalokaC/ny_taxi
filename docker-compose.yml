@@ -91,6 +91,11 @@ services:
       postgres:
         condition: service_healthy
 
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
   airflow-triggerer:
     image: ${AIRFLOW_IMAGE}
     pull_policy: always
@@ -114,6 +119,11 @@ services:
       retries: 5
     restart: always
     depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
       redis:
         condition: service_healthy
       postgres:
@@ -150,6 +160,11 @@ services:
       postgres:
         condition: service_healthy
 
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
   airflow-worker:
     image: ${AIRFLOW_IMAGE}
     pull_policy: always
@@ -174,6 +189,11 @@ services:
       retries: 5
     restart: always
     depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
       redis:
         condition: service_healthy
       postgres:
