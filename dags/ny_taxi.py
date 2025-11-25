@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import timedelta
 import pendulum
 import configparser
 import json
@@ -38,7 +39,10 @@ with DAG(
     catchup=True,
     tags=["ny_taxi","gcs","bigquery"],
     max_active_runs=2,
-    default_args={"retries": 2},
+    default_args={
+        "retries": 2,
+        "retry_delay": timedelta(seconds=30)
+        },
 ) as dag:
     
     from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyDatasetOperator, BigQueryCreateEmptyTableOperator

@@ -100,19 +100,20 @@ jobs:
 
       - name: Generate .env locally
         env:
-          ENV_POSTGRES_USER:     ${{ secrets.POSTGRES_USER }}
-          ENV_POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          ENV_POSTGRES_DB:       ${{ secrets.POSTGRES_DB }}
-          ENV_AIRFLOW_USER:      ${{ secrets.AIRFLOW_USER }}
-          ENV_AIRFLOW_PASSWORD:  ${{ secrets.AIRFLOW_PASSWORD }}
-          ENV_AIRFLOW_FERNET_KEY: ${{ secrets.FERNET_KEY}}
-          ENV_GCP_PROJECT_ID:    ${{ secrets.GCP_PROJECT_ID }}
-          ENV_GCS_BUCKET:        ${{ secrets.GCS_BUCKET }}
-          ENV_BQ_DATASET:        ${{ secrets.BQ_DATASET }}
-          ENV_BQ_TABLE:          ${{ secrets.BQ_TABLE }}
-          ENV_REGION:            ${{ secrets.GAR_LOCATION }}
-          ENV_GAR_REPO:          ${{ secrets.GAR_REPO }}
-          ENV_IMAGE_NAME:        ${{ secrets.IMAGE_NAME }}
+          ENV_POSTGRES_USER:        ${{ secrets.POSTGRES_USER }}
+          ENV_POSTGRES_PASSWORD:    ${{ secrets.POSTGRES_PASSWORD }}
+          ENV_POSTGRES_DB:          ${{ secrets.POSTGRES_DB }}
+          ENV_AIRFLOW_USER:         ${{ secrets.AIRFLOW_USER }}
+          ENV_AIRFLOW_PASSWORD:     ${{ secrets.AIRFLOW_PASSWORD }}
+          ENV_AIRFLOW_FERNET_KEY:   ${{ secrets.FERNET_KEY}}
+          ENV_WEBSERVER_SECRET_KEY: ${{ secrets.ENV_WEBSERVER_SECRET_KEY}}
+          ENV_GCP_PROJECT_ID:       ${{ secrets.GCP_PROJECT_ID }}
+          ENV_GCS_BUCKET:           ${{ secrets.GCS_BUCKET }}
+          ENV_BQ_DATASET:           ${{ secrets.BQ_DATASET }}
+          ENV_BQ_TABLE:             ${{ secrets.BQ_TABLE }}
+          ENV_REGION:               ${{ secrets.GAR_LOCATION }}
+          ENV_GAR_REPO:             ${{ secrets.GAR_REPO }}
+          ENV_IMAGE_NAME:           ${{ secrets.IMAGE_NAME }}
         run: |
           AIRFLOW_IMAGE="${ENV_REGION}-docker.pkg.dev/${ENV_GCP_PROJECT_ID}/${ENV_GAR_REPO}/${ENV_IMAGE_NAME}:latest"
 
@@ -123,6 +124,7 @@ jobs:
             echo "AIRFLOW_USER=${ENV_AIRFLOW_USER}"
             echo "AIRFLOW_PASSWORD=${ENV_AIRFLOW_PASSWORD}"
             echo "FERNET_KEY=${ENV_AIRFLOW_FERNET_KEY}"
+            echo "WEBSERVER_SECRET_KEY"=${ENV_WEBSERVER_SECRET_KEY}
             echo "GCP_PROJECT_ID=${ENV_GCP_PROJECT_ID}"
             echo "GCS_BUCKET=${ENV_GCS_BUCKET}"
             echo "BQ_DATASET=${ENV_BQ_DATASET}"
