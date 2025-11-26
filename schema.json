@@ -5,7 +5,7 @@
         {"name": "tpep_dropoff_datetime", "type": "TIMESTAMP", "mode": "REQUIRED"},
         {"name": "passenger_count", "type": "INTEGER", "mode": "NULLABLE"},
         {"name": "trip_distance", "type": "FLOAT", "mode": "NULLABLE"},
-        {"name": "store_and_fwd_flag", "type": "BOOLEAN", "mode": "NULLABLE"},
+        {"name": "store_and_fwd_flag", "type": "STRING", "mode": "NULLABLE"},
         {"name": "RatecodeID", "type": "INTEGER", "mode": "NULLABLE"},
         {"name": "PULocationID", "type": "INTEGER", "mode": "NULLABLE"},
         {"name": "DOLocationID", "type": "INTEGER", "mode": "NULLABLE"},
