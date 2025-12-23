@@ -26,5 +26,6 @@ webserver_config.py
 
 #extra scripts
 pipeline.py
+read_parquet.py
 utils.py
 

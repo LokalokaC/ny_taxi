@@ -26,11 +26,41 @@ TAXI_TYPES = json.loads(raw_taxi)
 
 with open("schema.json") as f:
     taxi_configs = json.load(f)
-SCHEMA_FIELDS = taxi_configs["schema_fields"]
-CLUSTER_FIELDS = taxi_configs.get("cluster_fields")
-TIME_PARTITION = taxi_configs.get("time_partitioning")
-STAGING_TABLE = [f"{t}_taxi_staging" for t in TAXI_TYPES]
-MAIN_TABLE = [f"{t}_taxi" for t in TAXI_TYPES]
+
+STAGING_TABLE_CONFIGS = [
+    {
+        "table_id": f"{t}_taxi_staging",
+        "schema_fields": taxi_configs[t]["schema_fields"],
+        "time_partitioning": taxi_configs[t]["time_partitioning"],
+        "cluster_fields": taxi_configs[t].get("cluster_fields"),
+    }
+    for t in TAXI_TYPES
+]
+
+MAIN_TABLE_CONFIGS = [
+    {
+        "table_id": f"{t}_taxi",
+        "schema_fields": taxi_configs[t]["schema_fields"],
+        "time_partitioning": taxi_configs[t]["time_partitioning"],
+        "cluster_fields": taxi_configs[t].get("cluster_fields"),
+    }
+    for t in TAXI_TYPES
+]
+
+ADD_TRIP_HASH_CONFIGS = [
+    {
+        "configuration": {
+            "query": {
+                "query": f"""
+                ALTER TABLE `{PROJECT_ID}.{DATASET_NAME}.{t}_taxi`
+                ADD COLUMN IF NOT EXISTS trip_hash STRING
+                """,
+                "useLegacySql": False,
+            }
+        }
+    }
+    for t in TAXI_TYPES
+]
 
 with DAG(
     dag_id="ny_taxi_ingestion",
@@ -45,7 +75,7 @@ with DAG(
         },
 ) as dag:
     
-    from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyDatasetOperator, BigQueryCreateEmptyTableOperator
+    from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyDatasetOperator, BigQueryCreateEmptyTableOperator, BigQueryInsertJobOperator
 
     create_datasets = BigQueryCreateEmptyDatasetOperator(
             task_id = "create_bigquery_datasets",
@@ -61,22 +91,21 @@ with DAG(
         gcp_conn_id="google_cloud_default",
         project_id = PROJECT_ID,
         dataset_id = DATASET_NAME,
-        exists_ok = True,
-        schema_fields=SCHEMA_FIELDS,
-        time_partitioning={"type": "MONTH"},
-        cluster_fields=CLUSTER_FIELDS
-    ).expand(table_id = STAGING_TABLE)
+        exists_ok = True
+    ).expand_kwargs(STAGING_TABLE_CONFIGS)
     
     create_main_tables = BigQueryCreateEmptyTableOperator.partial(
         task_id = "create_bigquery_tables",
         gcp_conn_id="google_cloud_default",
         project_id = PROJECT_ID,
         dataset_id = DATASET_NAME,
-        exists_ok = True,
-        schema_fields=SCHEMA_FIELDS,
-        time_partitioning=TIME_PARTITION,
-        cluster_fields=CLUSTER_FIELDS
-    ).expand(table_id = MAIN_TABLE)
+        exists_ok = True
+    ).expand_kwargs(MAIN_TABLE_CONFIGS)
+
+    check_trip_hash = BigQueryInsertJobOperator.partial(
+        task_id="check_trip_hash_in_main",
+        gcp_conn_id="google_cloud_default",
+    ).expand_kwargs(ADD_TRIP_HASH_CONFIGS)
     
     @task
     def build_assets(taxi_type: str) -> dict:
@@ -121,7 +150,6 @@ with DAG(
     def staging_to_merge(asset: dict) -> dict:
         from src.bigquery import merge_to_main
         return merge_to_main(asset=asset)
-   
     
     assets = build_assets.expand(taxi_type=TAXI_TYPES)
     _check_availability = check_availability.expand(asset=assets)
@@ -130,7 +158,7 @@ with DAG(
     _gcs_to_staging = gcs_to_staging.partial(write_disposition="WRITE_TRUNCATE", autodetect=False).expand(asset=_upload)
     _staging_to_merge = staging_to_merge.expand(asset=_gcs_to_staging)
 
-    create_datasets >> create_main_tables >> create_staging_tables >> assets
+    create_datasets >> create_main_tables >> create_staging_tables >> check_trip_hash >> assets
     assets >> _check_availability >> _download >> _upload >> _gcs_to_staging >> _staging_to_merge
 
     
