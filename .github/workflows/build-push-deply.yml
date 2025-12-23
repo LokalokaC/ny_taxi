@@ -1,8 +1,8 @@
 name: Build, Push to GAR, and Deploy to VM
 
 on:
-  ##push:
-    ##branches: [ main ]
+  push:
+    branches: [ main ]
   workflow_dispatch: {}
 
 env:
@@ -142,6 +142,24 @@ jobs:
           scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ./deploy.sh ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/deploy.sh
           scp -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ./docker-compose.yml ${VM_USER}@${VM_HOST}:${VM_DEPLOY_DIR}/docker-compose.yml
 
+      - name: Check disk + prune docker on VM
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "
+            set -euo pipefail
+            echo '== df -h =='
+            df -h
+            echo '== docker system df =='
+            docker system df || true
+
+            echo '== pruning old docker data =='
+            docker compose -f ${VM_DEPLOY_DIR}/docker-compose.yml down --remove-orphans || true
+            docker system prune -af --volumes || true
+            docker builder prune -af || true
+
+            echo '== df -h after prune =='
+            df -h
+          "
+      
       - name: Run deploy.sh on VM
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "
