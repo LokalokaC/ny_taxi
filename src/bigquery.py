@@ -149,7 +149,7 @@ def merge_to_main(asset: dict) -> dict:
 
     client = bigquery.Client(project=project_id)
 
-    CHECK_MERGE_SQL_DIR = Path(__file__).resolve().parent / 'merge_check.sql'
+    CHECK_MERGE_SQL_DIR = Path(__file__).resolve().parent / f"{table_name}_merge_check.sql"
     with open(CHECK_MERGE_SQL_DIR, encoding="utf-8") as f:
         template = Template(f.read())
         check_sql = template.render(
@@ -175,7 +175,7 @@ def merge_to_main(asset: dict) -> dict:
             f"No new rows to MERGE for {table_name} {year}-{month:02d}; skipping."
         )
 
-    MERGE_SQL_DIR = Path(__file__).resolve().parent / 'merge.sql'
+    MERGE_SQL_DIR = Path(__file__).resolve().parent / f"{table_name}_merge.sql"
     with open(MERGE_SQL_DIR, encoding="utf-8") as f:
         template = Template(f.read())
         sql = template.render(

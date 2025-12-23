@@ -1,28 +1,59 @@
 {
-    "schema_fields": [
+    "yellow": {
+        "schema_fields": [
+            {"name": "VendorID", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "tpep_pickup_datetime", "type": "TIMESTAMP", "mode": "REQUIRED"},
+            {"name": "tpep_dropoff_datetime", "type": "TIMESTAMP", "mode": "REQUIRED"},
+            {"name": "passenger_count", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "trip_distance", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "store_and_fwd_flag", "type": "STRING", "mode": "NULLABLE"},
+            {"name": "RatecodeID", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "PULocationID", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "DOLocationID", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "payment_type", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "fare_amount", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "extra", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "mta_tax", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "tip_amount", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "tolls_amount", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "improvement_surcharge", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "total_amount", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "congestion_surcharge", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "Airport_fee", "type": "FLOAT", "mode": "NULLABLE"},
+            {"name": "cbd_congestion_fee", "type": "FLOAT", "mode": "NULLABLE"}
+            ],
+        "cluster_fields": ["VendorID", "tpep_pickup_datetime"],
+        "time_partitioning": {
+            "type": "MONTH"
+            }
+    },
+    "green": {
+            "schema_fields": [
         {"name": "VendorID", "type": "INTEGER", "mode": "NULLABLE"},
-        {"name": "tpep_pickup_datetime", "type": "TIMESTAMP", "mode": "REQUIRED"},
-        {"name": "tpep_dropoff_datetime", "type": "TIMESTAMP", "mode": "REQUIRED"},
-        {"name": "passenger_count", "type": "INTEGER", "mode": "NULLABLE"},
-        {"name": "trip_distance", "type": "FLOAT", "mode": "NULLABLE"},
-        {"name": "store_and_fwd_flag", "type": "BOOLEAN", "mode": "NULLABLE"},
+        {"name": "lpep_pickup_datetime", "type": "TIMESTAMP", "mode": "REQUIRED"},
+        {"name": "lpep_dropoff_datetime", "type": "TIMESTAMP", "mode": "REQUIRED"},
+        {"name": "store_and_fwd_flag", "type": "STRING", "mode": "NULLABLE"},
         {"name": "RatecodeID", "type": "INTEGER", "mode": "NULLABLE"},
         {"name": "PULocationID", "type": "INTEGER", "mode": "NULLABLE"},
         {"name": "DOLocationID", "type": "INTEGER", "mode": "NULLABLE"},
-        {"name": "payment_type", "type": "INTEGER", "mode": "NULLABLE"},
+        {"name": "passenger_count", "type": "INTEGER", "mode": "NULLABLE"},
+        {"name": "trip_distance", "type": "FLOAT", "mode": "NULLABLE"},
         {"name": "fare_amount", "type": "FLOAT", "mode": "NULLABLE"},
         {"name": "extra", "type": "FLOAT", "mode": "NULLABLE"},
         {"name": "mta_tax", "type": "FLOAT", "mode": "NULLABLE"},
         {"name": "tip_amount", "type": "FLOAT", "mode": "NULLABLE"},
         {"name": "tolls_amount", "type": "FLOAT", "mode": "NULLABLE"},
+        {"name": "ehail_fee", "type": "FLOAT", "mode": "NULLABLE"},
         {"name": "improvement_surcharge", "type": "FLOAT", "mode": "NULLABLE"},
         {"name": "total_amount", "type": "FLOAT", "mode": "NULLABLE"},
+        {"name": "payment_type", "type": "INTEGER", "mode": "NULLABLE"},
+        {"name": "trip_type", "type": "INTEGER", "mode": "NULLABLE"},
         {"name": "congestion_surcharge", "type": "FLOAT", "mode": "NULLABLE"},
-        {"name": "Airport_fee", "type": "FLOAT", "mode": "NULLABLE"},
         {"name": "cbd_congestion_fee", "type": "FLOAT", "mode": "NULLABLE"}
         ],
-    "cluster_fields": ["VendorID", "tpep_pickup_datetime"],
+    "cluster_fields": ["VendorID", "lpep_pickup_datetime"],
     "time_partitioning": {
         "type": "MONTH"
         }
+    }
 }
