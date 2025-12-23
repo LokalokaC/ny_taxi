@@ -3,7 +3,6 @@ from datetime import timedelta
 import pendulum
 import configparser
 import json
-import logging
 
 from src.download import Asset, build_asset, check_url, download_to_tmp, NotReadyError
 
@@ -159,7 +158,7 @@ with DAG(
     _gcs_to_staging = gcs_to_staging.partial(write_disposition="WRITE_TRUNCATE", autodetect=False).expand(asset=_upload)
     _staging_to_merge = staging_to_merge.expand(asset=_gcs_to_staging)
 
-    create_datasets >> create_staging_tables >> create_main_tables  >> check_trip_hash >> assets
+    create_datasets >> create_main_tables >> create_staging_tables >> check_trip_hash >> assets
     assets >> _check_availability >> _download >> _upload >> _gcs_to_staging >> _staging_to_merge
 
     
