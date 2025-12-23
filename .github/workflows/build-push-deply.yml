@@ -106,7 +106,7 @@ jobs:
           ENV_AIRFLOW_USER:         ${{ secrets.AIRFLOW_USER }}
           ENV_AIRFLOW_PASSWORD:     ${{ secrets.AIRFLOW_PASSWORD }}
           ENV_AIRFLOW_FERNET_KEY:   ${{ secrets.FERNET_KEY}}
-          ENV_WEBSERVER_SECRET_KEY: ${{ secrets.ENV_WEBSERVER_SECRET_KEY}}
+          ENV_WEBSERVER_SECRET_KEY: ${{ secrets.WEBSERVER_SECRET_KEY}}
           ENV_GCP_PROJECT_ID:       ${{ secrets.GCP_PROJECT_ID }}
           ENV_GCS_BUCKET:           ${{ secrets.GCS_BUCKET }}
           ENV_BQ_DATASET:           ${{ secrets.BQ_DATASET }}
