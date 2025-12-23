@@ -124,7 +124,7 @@ jobs:
             echo "AIRFLOW_USER=${ENV_AIRFLOW_USER}"
             echo "AIRFLOW_PASSWORD=${ENV_AIRFLOW_PASSWORD}"
             echo "FERNET_KEY=${ENV_AIRFLOW_FERNET_KEY}"
-            echo "WEBSERVER_SECRET_KEY"=${WEBSERVER_SECRET_KEY}
+            echo "WEBSERVER_SECRET_KEY"=${ENV_WEBSERVER_SECRET_KEY}
             echo "GCP_PROJECT_ID=${ENV_GCP_PROJECT_ID}"
             echo "GCS_BUCKET=${ENV_GCS_BUCKET}"
             echo "BQ_DATASET=${ENV_BQ_DATASET}"
