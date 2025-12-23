@@ -3,7 +3,7 @@ set -euxo pipefail
 exec > >(tee -a /var/log/startup-script.log) 2>&1
 export DEBIAN_FRONTEND=noninteractive
 
-DEPLOY_USER="git-actions"
+DEPLOY_USER="github-actions"
 VM_DEPLOY_DIR="/opt/airflow"
 GAR_REGION="us-west1"
 
