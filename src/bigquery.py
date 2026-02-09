@@ -6,92 +6,10 @@ from pathlib import Path
 from jinja2 import Template
 from typing import List, Optional, Dict, Any
 import time, logging
+from src.utils import configure_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+configure_logging()
 logger = logging.getLogger(__name__)
-
-def create_bigquery_datasets(
-        project_id: str,
-        dataset_name: str,
-        location: str = 'US'
-        ) -> str:
-    start_time = time.time()
-    try:
-        client = bigquery.Client(project=project_id)
-    except Exception as e:
-        logger.exception("Error occurred while initializing BigQuery client: %s", e)
-        raise
-
-    dataset_id = f"{project_id}.{dataset_name}"
-
-    try:
-        client.get_dataset(dataset_id)
-        logger.info("Dataset already existed. Skip creating datasets: %s", dataset_id)
-        return dataset_id
-    except NotFound:
-        logger.info("Dataset not found. Will create: %s", dataset_id)
-    
-    dataset = bigquery.Dataset(dataset_id)
-    dataset.location = location
-
-    try:
-        client.create_dataset(dataset, timeout=30)
-        end_time = time.time()
-        elapsed_time = round(end_time - start_time, 2)
-        logger.info("Created dataset %s for (%.2fs)", dataset_id, elapsed_time)
-        return dataset_id
-    except Exception as e:
-        logger.exception("Failed to create dataset %s: %s ", dataset, e)
-        raise
-
-
-def create_bigquery_tables(
-        project_id: str,
-        dataset_id: str,
-        table_name: str,
-        schema: List[bigquery.SchemaField],
-        partition_field: Optional[str] = None,
-        clustering_fields: Optional[List[str]] = None
-        ) -> str:
-    
-    start_time = time.time()
-    try:
-        client = bigquery.Client(project=project_id)
-    except Exception as e:
-        logger.exception("Error occurred while initializing BigQuery client: %s", e)
-        raise
-
-    table_id = f"{dataset_id}.{table_name}"
-
-    try:
-        client.get_table(table_id)
-        logger.info("Table already existed. Skip creating %s", table_id)
-        return table_id
-    except NotFound:
-        logger.info("Table not found. Will create %s", table_name)
-
-    table = bigquery.Table(table_id, schema=schema)
-    if partition_field:
-        table.time_partitioning = bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.DAY,
-            field=partition_field
-        )
-    if clustering_fields:
-        table.clustering_fields = clustering_fields
-    
-    try:
-        client.create_table(table)
-        end_time = time.time()
-        elapsed_time = round(end_time - start_time, 2)
-        logger.info("Table %s created (%.2fs).", table_id, elapsed_time)
-        return table_id
-    except Exception as e:
-        logger.exception("Failed to create %s", table_id)
-        raise
 
 def load_to_bigquery(
         asset: dict,
@@ -149,7 +67,7 @@ def merge_to_main(asset: dict) -> dict:
 
     client = bigquery.Client(project=project_id)
 
-    CHECK_MERGE_SQL_DIR = Path(__file__).resolve().parent / f"{table_name}_merge_check.sql"
+    CHECK_MERGE_SQL_DIR = Path(__file__).resolve().parent / "sql" / f"{table_name}_merge_check.sql"
     with open(CHECK_MERGE_SQL_DIR, encoding="utf-8") as f:
         template = Template(f.read())
         check_sql = template.render(
@@ -175,7 +93,7 @@ def merge_to_main(asset: dict) -> dict:
             f"No new rows to MERGE for {table_name} {year}-{month:02d}; skipping."
         )
 
-    MERGE_SQL_DIR = Path(__file__).resolve().parent / f"{table_name}_merge.sql"
+    MERGE_SQL_DIR = Path(__file__).resolve().parent / "sql" / f"{table_name}_merge.sql"
     with open(MERGE_SQL_DIR, encoding="utf-8") as f:
         template = Template(f.read())
         sql = template.render(

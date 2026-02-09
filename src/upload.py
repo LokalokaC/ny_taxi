@@ -2,12 +2,9 @@ from pathlib import Path
 from google.cloud import storage
 from google.api_core.exceptions import NotFound, Conflict, Forbidden
 import time, logging
+from src.utils import configure_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+configure_logging()
 logger = logging.getLogger(__name__)
 
 def upload_to_gcs(asset: dict)-> dict:
