@@ -49,8 +49,3 @@ The pipeline is deployed on Google Cloud Platform, simulating a production-grade
 # Clone the repository
 git clone [https://github.com/LokalokaC/ny_taxi.git](https://github.com/LokalokaC/ny_taxi.git)
 cd ny_taxi
-
-# Start the environment
-# (Ensure your GCP credentials are configured in .env)
-chmod +x start.sh
-./start.sh

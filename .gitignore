@@ -13,6 +13,9 @@ gcs.json
 *.logs
 *.tmp
 
+.dockerignore
+.env
+
 #downloads
 tmp/
 docker-compose_dev.yml
@@ -27,5 +30,7 @@ webserver_config.py
 #extra scripts
 pipeline.py
 read_parquet.py
-utils.py
+
+
+
 

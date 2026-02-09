@@ -114,7 +114,14 @@ with DAG(
         logical_date = context["logical_date"].in_timezone(TIME_ZONE)
         year = logical_date.year
         month = logical_date.month
-        asset = build_asset(taxi_type=taxi_type, year=year, month=month, project_id=PROJECT_ID, bucket=BUCKET, dataset_name=DATASET_NAME)
+        asset = build_asset(
+            taxi_type=taxi_type,
+            year=year,
+            month=month,
+            source_base=SOURCE_BASE,
+            project_id=PROJECT_ID,
+            bucket=BUCKET,
+            dataset_name=DATASET_NAME)
         return asdict(asset)
 
     @task
